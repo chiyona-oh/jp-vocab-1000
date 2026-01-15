@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일본어 단어 학습</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            font-size: 16px;
+            color: #667eea;
+            font-weight: 500;
+            min-height: 24px;
+        }
+
+        .word-display {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 40px 20px;
+            margin: 30px 0;
+            text-align: center;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .word-japanese {
+            font-size: 42px;
+            color: #333;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .meaning-display {
+            font-size: 20px;
+            color: #667eea;
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8ecff;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .example-display {
+            font-size: 18px;
+            color: #666;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .example-meaning {
+            font-size: 16px;
+            color: #888;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 18px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            min-height: 60px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-play {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-play:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-know {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-know:hover:not(:disabled) {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-dont-know {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-dont-know:hover:not(:disabled) {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 101, 101, 0.4);
+        }
+
+        .empty-message {
+            color: #999;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .word-japanese {
+                font-size: 36px;
+            }
+
+            button {
+                font-size: 16px;
+                padding: 16px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>일본어 단어 학습</h1>
+            <div class="progress" id="progress">0/0</div>
+            <div class="status" id="status">준비되었습니다</div>
+        </div>
+
+        <div class="word-display">
+            <div class="word-japanese" id="wordDisplay"></div>
+            <div class="meaning-display" id="meaningDisplay"></div>
+            <div class="example-display" id="exampleDisplay">
+                <div id="exampleJapanese"></div>
+                <div class="example-meaning" id="exampleMeaning"></div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-play" id="btnPlay">재생</button>
+            <button class="btn-know" id="btnKnow" disabled>안다</button>
+            <button class="btn-dont-know" id="btnDontKnow" disabled>모른다</button>
+        </div>
+    </div>
+
+    <script>
+        // 일본어 단어 데이터 (120개) - 중복 제거, 모든 필드 완성
+        const words = [
+            { word: "食べる", reading: "たべる", meaning: "먹다", example: "パンを食べます。", exampleMeaning: "빵을 먹습니다." },
+            { word: "飲む", reading: "のむ", meaning: "마시다", example: "お茶を飲みます。", exampleMeaning: "차를 마십니다." },
+            { word: "行く", reading: "いく", meaning: "가다", example: "学校に行きます。", exampleMeaning: "학교에 갑니다." },
+            { word: "来る", reading: "くる", meaning: "오다", example: "明日来ます。", exampleMeaning: "내일 옵니다." },
+            { word: "見る", reading: "みる", meaning: "보다", example: "映画を見ます。", exampleMeaning: "영화를 봅니다." },
+            { word: "聞く", reading: "きく", meaning: "듣다", example: "音楽を聞きます。", exampleMeaning: "음악을 듣습니다." },
+            { word: "話す", reading: "はなす", meaning: "말하다", example: "日本語を話します。", exampleMeaning: "일본어를 말합니다." },
+            { word: "読む", reading: "よむ", meaning: "읽다", example: "本を読みます。", exampleMeaning: "책을 읽습니다." },
+            { word: "書く", reading: "かく", meaning: "쓰다", example: "手紙を書きます。", exampleMeaning: "편지를 씁니다." },
+            { word: "買う", reading: "かう", meaning: "사다", example: "りんごを買います。", exampleMeaning: "사과를 삽니다." },
+            { word: "売る", reading: "うる", meaning: "팔다", example: "車を売ります。", exampleMeaning: "차를 팝니다." },
+            { word: "作る", reading: "つくる", meaning: "만들다", example: "料理を作ります。", exampleMeaning: "요리를 만듭니다." },
+            { word: "勉強する", reading: "べんきょうする", meaning: "공부하다", example: "毎日勉強します。", exampleMeaning: "매일 공부합니다." },
+            { word: "働く", reading: "はたらく", meaning: "일하다", example: "会社で働きます。", exampleMeaning: "회사에서 일합니다." },
+            { word: "休む", reading: "やすむ", meaning: "쉬다", example: "家で休みます。", exampleMeaning: "집에서 쉽니다." },
+            { word: "寝る", reading: "ねる", meaning: "자다", example: "早く寝ます。", exampleMeaning: "일찍 잡니다." },
+            { word: "起きる", reading: "おきる", meaning: "일어나다", example: "朝7時に起きます。", exampleMeaning: "아침 7시에 일어납니다." },
+            { word: "会う", reading: "あう", meaning: "만나다", example: "友達に会います。", exampleMeaning: "친구를 만납니다." },
+            { word: "帰る", reading: "かえる", meaning: "돌아가다", example: "家に帰ります。", exampleMeaning: "집에 돌아갑니다." },
+            { word: "入る", reading: "はいる", meaning: "들어가다", example: "部屋に入ります。", exampleMeaning: "방에 들어갑니다." },
+            { word: "出る", reading: "でる", meaning: "나가다", example: "家を出ます。", exampleMeaning: "집을 나갑니다." },
+            { word: "開ける", reading: "あける", meaning: "열다", example: "窓を開けます。", exampleMeaning: "창문을 엽니다." },
+            { word: "閉める", reading: "しめる", meaning: "닫다", example: "ドアを閉めます。", exampleMeaning: "문을 닫습니다." },
+            { word: "立つ", reading: "たつ", meaning: "서다", example: "電車で立ちます。", exampleMeaning: "전철에서 섭니다." },
+            { word: "座る", reading: "すわる", meaning: "앉다", example: "椅子に座ります。", exampleMeaning: "의자에 앉습니다." },
+            { word: "歩く", reading: "あるく", meaning: "걷다", example: "公園を歩きます。", exampleMeaning: "공원을 걷습니다." },
+            { word: "走る", reading: "はしる", meaning: "달리다", example: "毎朝走ります。", exampleMeaning: "매일 아침 달립니다." },
+            { word: "泳ぐ", reading: "およぐ", meaning: "수영하다", example: "海で泳ぎます。", exampleMeaning: "바다에서 수영합니다." },
+            { word: "飛ぶ", reading: "とぶ", meaning: "날다", example: "鳥が飛びます。", exampleMeaning: "새가 납니다." },
+            { word: "遊ぶ", reading: "あそぶ", meaning: "놀다", example: "公園で遊びます。", exampleMeaning: "공원에서 놉니다." },
+            { word: "歌う", reading: "うたう", meaning: "노래하다", example: "歌を歌います。", exampleMeaning: "노래를 부릅니다." },
+            { word: "踊る", reading: "おどる", meaning: "춤추다", example: "パーティーで踊ります。", exampleMeaning: "파티에서 춤춥니다." },
+            { word: "笑う", reading: "わらう", meaning: "웃다", example: "面白い話で笑います。", exampleMeaning: "재미있는 이야기에 웃습니다." },
+            { word: "泣く", reading: "なく", meaning: "울다", example: "悲しくて泣きます。", exampleMeaning: "슬퍼서 웁니다." },
+            { word: "思う", reading: "おもう", meaning: "생각하다", example: "そう思います。", exampleMeaning: "그렇게 생각합니다." },
+            { word: "知る", reading: "しる", meaning: "알다", example: "その人を知ります。", exampleMeaning: "그 사람을 압니다." },
+            { word: "分かる", reading: "わかる", meaning: "이해하다", example: "日本語が分かります。", exampleMeaning: "일본어를 이해합니다." },
+            { word: "教える", reading: "おしえる", meaning: "가르치다", example: "日本語を教えます。", exampleMeaning: "일본어를 가르칩니다." },
+            { word: "習う", reading: "ならう", meaning: "배우다", example: "ピアノを習います。", exampleMeaning: "피아노를 배웁니다." },
+            { word: "覚える", reading: "おぼえる", meaning: "기억하다", example: "単語を覚えます。", exampleMeaning: "단어를 기억합니다." },
+            { word: "忘れる", reading: "わすれる", meaning: "잊다", example: "名前を忘れます。", exampleMeaning: "이름을 잊습니다." },
+            { word: "探す", reading: "さがす", meaning: "찾다", example: "鍵を探します。", exampleMeaning: "열쇠를 찾습니다." },
+            { word: "見つける", reading: "みつける", meaning: "발견하다", example: "良い店を見つけます。", exampleMeaning: "좋은 가게를 발견합니다." },
+            { word: "持つ", reading: "もつ", meaning: "가지다", example: "かばんを持ちます。", exampleMeaning: "가방을 가집니다." },
+            { word: "置く", reading: "おく", meaning: "놓다", example: "机の上に置きます。", exampleMeaning: "책상 위에 놓습니다." },
+            { word: "取る", reading: "とる", meaning: "가져가다", example: "写真を取ります。", exampleMeaning: "사진을 찍습니다." },
+            { word: "渡す", reading: "わたす", meaning: "건네주다", example: "手紙を渡します。", exampleMeaning: "편지를 건네줍니다." },
+            { word: "あげる", reading: "あげる", meaning: "주다", example: "プレゼントをあげます。", exampleMeaning: "선물을 줍니다." },
+            { word: "もらう", reading: "もらう", meaning: "받다", example: "手紙をもらいます。", exampleMeaning: "편지를 받습니다." },
+            { word: "借りる", reading: "かりる", meaning: "빌리다", example: "本を借ります。", exampleMeaning: "책을 빌립니다." },
+            { word: "返す", reading: "かえす", meaning: "돌려주다", example: "本を返します。", exampleMeaning: "책을 돌려줍니다." },
+            { word: "使う", reading: "つかう", meaning: "사용하다", example: "パソコンを使います。", exampleMeaning: "컴퓨터를 사용합니다." },
+            { word: "切る", reading: "きる", meaning: "자르다", example: "野菜を切ります。", exampleMeaning: "야채를 자릅니다." },
+            { word: "貼る", reading: "はる", meaning: "붙이다", example: "切手を貼ります。", exampleMeaning: "우표를 붙입니다." },
+            { word: "洗う", reading: "あらう", meaning: "씻다", example: "手を洗います。", exampleMeaning: "손을 씻습니다." },
+            { word: "掃除する", reading: "そうじする", meaning: "청소하다", example: "部屋を掃除します。", exampleMeaning: "방을 청소합니다." },
+            { word: "片付ける", reading: "かたづける", meaning: "정리하다", example: "机を片付けます。", exampleMeaning: "책상을 정리합니다." },
+            { word: "着る", reading: "きる", meaning: "입다", example: "服を着ます。", exampleMeaning: "옷을 입습니다." },
+            { word: "脱ぐ", reading: "ぬぐ", meaning: "벗다", example: "靴を脱ぎます。", exampleMeaning: "신발을 벗습니다." },
+            { word: "履く", reading: "はく", meaning: "신다", example: "靴を履きます。", exampleMeaning: "신발을 신습니다." },
+            { word: "かける", reading: "かける", meaning: "걸다", example: "電話をかけます。", exampleMeaning: "전화를 겁니다." },
+            { word: "待つ", reading: "まつ", meaning: "기다리다", example: "バスを待ちます。", exampleMeaning: "버스를 기다립니다." },
+            { word: "止まる", reading: "とまる", meaning: "멈추다", example: "車が止まります。", exampleMeaning: "차가 멈춥니다." },
+            { word: "始まる", reading: "はじまる", meaning: "시작되다", example: "授業が始まります。", exampleMeaning: "수업이 시작됩니다." },
+            { word: "終わる", reading: "おわる", meaning: "끝나다", example: "映画が終わります。", exampleMeaning: "영화가 끝납니다." },
+            { word: "始める", reading: "はじめる", meaning: "시작하다", example: "勉強を始めます。", exampleMeaning: "공부를 시작합니다." },
+            { word: "終える", reading: "おえる", meaning: "끝내다", example: "仕事を終えます。", exampleMeaning: "일을 끝냅니다." },
+            { word: "続ける", reading: "つづける", meaning: "계속하다", example: "練習を続けます。", exampleMeaning: "연습을 계속합니다." },
+            { word: "変える", reading: "かえる", meaning: "바꾸다", example: "計画を変えます。", exampleMeaning: "계획을 바꿉니다." },
+            { word: "直す", reading: "なおす", meaning: "고치다", example: "時計を直します。", exampleMeaning: "시계를 고칩니다." },
+            { word: "壊す", reading: "こわす", meaning: "부수다", example: "おもちゃを壊します。", exampleMeaning: "장난감을 부숩니다." },
+            { word: "建てる", reading: "たてる", meaning: "짓다", example: "家を建てます。", exampleMeaning: "집을 짓습니다." },
+            { word: "住む", reading: "すむ", meaning: "살다", example: "東京に住みます。", exampleMeaning: "도쿄에 삽니다." },
+            { word: "引っ越す", reading: "ひっこす", meaning: "이사하다", example: "新しい家に引っ越します。", exampleMeaning: "새 집으로 이사합니다." },
+            { word: "旅行する", reading: "りょこうする", meaning: "여행하다", example: "日本を旅行します。", exampleMeaning: "일본을 여행합니다." },
+            { word: "着く", reading: "つく", meaning: "도착하다", example: "駅に着きます。", exampleMeaning: "역에 도착합니다." },
+            { word: "出発する", reading: "しゅっぱつする", meaning: "출발하다", example: "朝8時に出発します。", exampleMeaning: "아침 8시에 출발합니다." },
+            { word: "乗る", reading: "のる", meaning: "타다", example: "電車に乗ります。", exampleMeaning: "전철을 탑니다." },
+            { word: "降りる", reading: "おりる", meaning: "내리다", example: "バスを降ります。", exampleMeaning: "버스를 내립니다." },
+            { word: "運転する", reading: "うんてんする", meaning: "운전하다", example: "車を運転します。", exampleMeaning: "차를 운전합니다." },
+            { word: "止める", reading: "とめる", meaning: "멈추다", example: "車を止めます。", exampleMeaning: "차를 멈춥니다." },
+            { word: "曲がる", reading: "まがる", meaning: "돌다", example: "右に曲がります。", exampleMeaning: "오른쪽으로 돕니다." },
+            { word: "渡る", reading: "わたる", meaning: "건너다", example: "橋を渡ります。", exampleMeaning: "다리를 건넙니다." },
+            { word: "登る", reading: "のぼる", meaning: "오르다", example: "山に登ります。", exampleMeaning: "산에 오릅니다." },
+            { word: "上がる", reading: "あがる", meaning: "오르다", example: "温度が上がります。", exampleMeaning: "온도가 오릅니다." },
+            { word: "下がる", reading: "さがる", meaning: "내려가다", example: "値段が下がります。", exampleMeaning: "가격이 내려갑니다." },
+            { word: "入れる", reading: "いれる", meaning: "넣다", example: "お茶を入れます。", exampleMeaning: "차를 넣습니다." },
+            { word: "出す", reading: "だす", meaning: "꺼내다", example: "お金を出します。", exampleMeaning: "돈을 꺼냅니다." },
+            { word: "開く", reading: "ひらく", meaning: "열다", example: "本を開きます。", exampleMeaning: "책을 엽니다." },
+            { word: "閉じる", reading: "とじる", meaning: "닫다", example: "目を閉じます。", exampleMeaning: "눈을 감습니다." },
+            { word: "つける", reading: "つける", meaning: "켜다", example: "電気をつけます。", exampleMeaning: "전등을 켭니다." },
+            { word: "消す", reading: "けす", meaning: "끄다", example: "テレビを消します。", exampleMeaning: "TV를 끕니다." },
+            { word: "消える", reading: "きえる", meaning: "꺼지다", example: "電気が消えます。", exampleMeaning: "전등이 꺼집니다." },
+            { word: "落ちる", reading: "おちる", meaning: "떨어지다", example: "リンゴが落ちます。", exampleMeaning: "사과가 떨어집니다." },
+            { word: "拾う", reading: "ひろう", meaning: "줍다", example: "ゴミを拾います。", exampleMeaning: "쓰레기를 줍습니다." },
+            { word: "投げる", reading: "なげる", meaning: "던지다", example: "ボールを投げます。", exampleMeaning: "공을 던집니다." },
+            { word: "捕る", reading: "とる", meaning: "잡다", example: "魚を捕ります。", exampleMeaning: "물고기를 잡습니다." },
+            { word: "触る", reading: "さわる", meaning: "만지다", example: "花に触ります。", exampleMeaning: "꽃을 만집니다." },
+            { word: "押す", reading: "おす", meaning: "누르다", example: "ボタンを押します。", exampleMeaning: "버튼을 누릅니다." },
+            { word: "引く", reading: "ひく", meaning: "당기다", example: "ドアを引きます。", exampleMeaning: "문을 당깁니다." },
+            { word: "上げる", reading: "あげる", meaning: "올리다", example: "手を上げます。", exampleMeaning: "손을 올립니다." },
+            { word: "下げる", reading: "さげる", meaning: "내리다", example: "頭を下げます。", exampleMeaning: "머리를 내립니다." },
+            { word: "払う", reading: "はらう", meaning: "지불하다", example: "お金を払います。", exampleMeaning: "돈을 지불합니다." },
+            { word: "受ける", reading: "うける", meaning: "받다", example: "試験を受けます。", exampleMeaning: "시험을 받습니다." },
+            { word: "送る", reading: "おくる", meaning: "보내다", example: "手紙を送ります。", exampleMeaning: "편지를 보냅니다." },
+            { word: "届ける", reading: "とどける", meaning: "배달하다", example: "荷物を届けます。", exampleMeaning: "짐을 배달합니다." },
+            { word: "届く", reading: "とどく", meaning: "도착하다", example: "荷物が届きます。", exampleMeaning: "짐이 도착합니다." },
+            { word: "集める", reading: "あつめる", meaning: "모으다", example: "切手を集めます。", exampleMeaning: "우표를 모읍니다." },
+            { word: "集まる", reading: "あつまる", meaning: "모이다", example: "友達が集まります。", exampleMeaning: "친구들이 모입니다." },
+            { word: "選ぶ", reading: "えらぶ", meaning: "고르다", example: "服を選びます。", exampleMeaning: "옷을 고릅니다." },
+            { word: "決める", reading: "きめる", meaning: "결정하다", example: "時間を決めます。", exampleMeaning: "시간을 결정합니다." },
+            { word: "決まる", reading: "きまる", meaning: "결정되다", example: "時間が決まります。", exampleMeaning: "시간이 결정됩니다." },
+            { word: "頼む", reading: "たのむ", meaning: "부탁하다", example: "友達に頼みます。", exampleMeaning: "친구에게 부탁합니다." },
+            { word: "約束する", reading: "やくそくする", meaning: "약속하다", example: "友達と約束します。", exampleMeaning: "친구와 약속합니다." },
+            { word: "準備する", reading: "じゅんびする", meaning: "준비하다", example: "食事を準備します。", exampleMeaning: "식사를 준비합니다." },
+            { word: "練習する", reading: "れんしゅうする", meaning: "연습하다", example: "ピアノを練習します。", exampleMeaning: "피아노를 연습합니다." },
+            { word: "運動する", reading: "うんどうする", meaning: "운동하다", example: "毎日運動します。", exampleMeaning: "매일 운동합니다." },
+            { word: "散歩する", reading: "さんぽする", meaning: "산책하다", example: "公園を散歩します。", exampleMeaning: "공원을 산책합니다." },
+            { word: "料理する", reading: "りょうりする", meaning: "요리하다", example: "夕食を料理します。", exampleMeaning: "저녁을 요리합니다." },
+            { word: "洗濯する", reading: "せんたくする", meaning: "세탁하다", example: "服を洗濯します。", exampleMeaning: "옷을 세탁합니다." },
+            { word: "買い物する", reading: "かいものする", meaning: "쇼핑하다", example: "スーパーで買い物します。", exampleMeaning: "슈퍼에서 쇼핑합니다." },
+            { word: "食事する", reading: "しょくじする", meaning: "식사하다", example: "レストランで食事します。", exampleMeaning: "레스토랑에서 식사합니다." },
+            { word: "電話する", reading: "でんわする", meaning: "전화하다", example: "母に電話します。", exampleMeaning: "엄마에게 전화합니다." },
+            { word: "質問する", reading: "しつもんする", meaning: "질문하다", example: "先生に質問します。", exampleMeaning: "선생님에게 질문합니다." },
+            { word: "説明する", reading: "せつめいする", meaning: "설명하다", example: "問題を説明します。", exampleMeaning: "문제를 설명합니다." },
+            { word: "紹介する", reading: "しょうかいする", meaning: "소개하다", example: "友達を紹介します。", exampleMeaning: "친구를 소개합니다." },
+            { word: "案内する", reading: "あんないする", meaning: "안내하다", example: "道を案内します。", exampleMeaning: "길을 안내합니다." },
+            { word: "訪問する", reading: "ほうもんする", meaning: "방문하다", example: "友達を訪問します。", exampleMeaning: "친구를 방문합니다." },
+            { word: "参加する", reading: "さんかする", meaning: "참가하다", example: "パーティーに参加します。", exampleMeaning: "파티에 참가합니다." },
+            { word: "心配する", reading: "しんぱいする", meaning: "걱정하다", example: "子供を心配します。", exampleMeaning: "아이를 걱정합니다." },
+            { word: "感謝する", reading: "かんしゃする", meaning: "감사하다", example: "親に感謝します。", exampleMeaning: "부모님께 감사합니다." }
+        ];
+
+        let currentIndex = 0;
+        let usedIndices = new Set();
+        let isPlaying = false;
+
+        const wordDisplay = document.getElementById('wordDisplay');
+        const meaningDisplay = document.getElementById('meaningDisplay');
+        const exampleDisplay = document.getElementById('exampleDisplay');
+        const exampleJapanese = document.getElementById('exampleJapanese');
+        const exampleMeaning = document.getElementById('exampleMeaning');
+        const progressEl = document.getElementById('progress');
+        const statusEl = document.getElementById('status');
+        const btnPlay = document.getElementById('btnPlay');
+        const btnKnow = document.getElementById('btnKnow');
+        const btnDontKnow = document.getElementById('btnDontKnow');
+
+        // 랜덤 단어 선택
+        function getRandomWord() {
+            // 사용되지 않은 인덱스만 후보로 모음
+            const availableIndices = [];
+            for (let i = 0; i < words.length; i++) {
+                if (!usedIndices.has(i)) {
+                    availableIndices.push(i);
+                }
+            }
+            
+            // 후보가 없으면 학습 완료
+            if (availableIndices.length === 0) {
+                updateStatus('오늘 학습 완료');
+                wordDisplay.textContent = '모든 단어를 학습했습니다!';
+                setButtonsEnabled(false);
+                btnPlay.disabled = true;
+                return null;
+            }
+            
+            // 후보 중 랜덤 선택
+            const randomIndex = Math.floor(Math.random() * availableIndices.length);
+            const selectedIndex = availableIndices[randomIndex];
+            
+            usedIndices.add(selectedIndex);
+            currentIndex = selectedIndex;
+            
+            // 디버그 로그
+            console.log('pick', currentIndex, words[currentIndex].word);
+            
+            return words[selectedIndex];
+        }
+
+        // 단어 표시
+        function displayWord(word) {
+            wordDisplay.textContent = `${word.word}（${word.reading}）`;
+            meaningDisplay.style.display = 'none';
+            exampleDisplay.style.display = 'none';
+            updateProgress();
+        }
+
+        // 진행도 업데이트
+        function updateProgress() {
+            progressEl.textContent = `${usedIndices.size}/${words.length}`;
+        }
+
+        // 상태 업데이트
+        function updateStatus(text) {
+            statusEl.textContent = text;
+        }
+
+        // 버튼 활성화/비활성화
+        function setButtonsEnabled(enabled) {
+            btnKnow.disabled = !enabled || isPlaying;
+            btnDontKnow.disabled = !enabled || isPlaying;
+        }
+
+        // TTS로 텍스트 읽기
+        function speakText(text, callback) {
+            if (!text || text.trim() === '') {
+                if (callback) callback();
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 0.9;
+            
+            utterance.onend = () => {
+                if (callback) callback();
+            };
+            
+            utterance.onerror = () => {
+                if (callback) callback();
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+
+        // 재생 함수
+        async function playAudio(word) {
+            isPlaying = true;
+            updateStatus('재생 중…');
+            setButtonsEnabled(false);
+            btnPlay.disabled = true;
+
+            // 단어 2번 읽기
+            await new Promise(resolve => {
+                let count = 0;
+                const readWord = () => {
+                    count++;
+                    speakText(word.reading, () => {
+                        if (count < 2) {
+                            setTimeout(readWord, 300);
+                        } else {
+                            resolve();
+                        }
+                    });
+                };
+                readWord();
+            });
+
+            // 예문 읽기 (있는 경우)
+            if (word.example && word.example.trim() !== '') {
+                await new Promise(resolve => {
+                    speakText(word.example, resolve);
+                });
+            }
+
+            isPlaying = false;
+            updateStatus('선택하세요');
+            setButtonsEnabled(true);
+            btnPlay.disabled = false;
+        }
+
+        // 다음 단어로 이동
+        function nextWord() {
+            const word = getRandomWord();
+            if (word) {
+                displayWord(word);
+                updateStatus('준비되었습니다');
+                setButtonsEnabled(false);
+            }
+        }
+
+        // 이벤트 리스너
+        btnPlay.addEventListener('click', () => {
+            const word = words[currentIndex];
+            playAudio(word);
+        });
+
+        btnKnow.addEventListener('click', () => {
+            nextWord();
+        });
+
+        btnDontKnow.addEventListener('click', () => {
+            const word = words[currentIndex];
+            
+            // 뜻 표시
+            meaningDisplay.textContent = word.meaning || '뜻 준비 중';
+            meaningDisplay.style.display = 'block';
+            
+            // 예문 표시
+            if (word.example && word.example.trim() !== '') {
+                exampleJapanese.textContent = word.example;
+                exampleMeaning.textContent = word.exampleMeaning || '예문 뜻 준비 중';
+                exampleDisplay.style.display = 'block';
+            } else {
+                exampleJapanese.textContent = '예문 준비 중';
+                exampleMeaning.textContent = '';
+                exampleDisplay.style.display = 'block';
+            }
+
+            // 단어 1번 더 읽기
+            isPlaying = true;
+            updateStatus('재생 중…');
+            setButtonsEnabled(false);
+            btnPlay.disabled = true;
+
+            speakText(word.reading, () => {
+                isPlaying = false;
+                updateStatus('선택하세요');
+                setButtonsEnabled(true);
+                btnPlay.disabled = false;
+                
+                // 잠시 후 다음 단어로
+                setTimeout(() => {
+                    nextWord();
+                }, 1000);
+            });
+        });
+
+        // 초기화
+        updateProgress(); // 초기 진행도 표시
+        nextWord();
+    </script>
+</body>
+</html>
